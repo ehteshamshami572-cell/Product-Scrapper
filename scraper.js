@@ -1,12 +1,15 @@
 import fs from "fs/promises";
 import path from "path";
-import { chromium } from "playwright";
-import ExcelJS from "exceljs";
 
 const DEFAULT_HEADERS = {
-  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
-  Accept: "application/json,text/html,application/xhtml+xml;q=0.9,*/*;q=0.8"
+  "User-Agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+  Accept: "application/json,text/html,application/xhtml+xml;q=0.9,*/*;q=0.8",
 };
+
+// Vercel optimization: Lazily import heavy modules only when needed.
+const importPlaywright = () => import("playwright");
+const importExcelJS = () => import("exceljs");
 
 export function normalizeStoreUrl(input) {
   const raw = String(input || "").trim();
@@ -20,11 +23,13 @@ export function normalizeStoreUrl(input) {
 }
 
 function safeFilename(value, fallback = "item") {
-  return String(value || "")
-    .trim()
-    .replace(/[^A-Za-z0-9._-]+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^[-._\s]+|[-._\s]+$/g, "") || fallback;
+  return (
+    String(value || "")
+      .trim()
+      .replace(/[^A-Za-z0-9._-]+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^[-._\s]+|[-._\s]+$/g, "") || fallback
+  );
 }
 
 async function fetchWithRetry(url, options = {}, maxRetries = 3, onProgress) {
@@ -37,10 +42,14 @@ async function fetchWithRetry(url, options = {}, maxRetries = 3, onProgress) {
       }
       if ([403, 429, 500, 502, 503, 504].includes(response.status)) {
         if (attempt === maxRetries) {
-          onProgress?.(`Failed after ${maxRetries} attempts with status ${response.status} for ${url}`);
+          onProgress?.(
+            `Failed after ${maxRetries} attempts with status ${response.status} for ${url}`,
+          );
           return response;
         }
-        onProgress?.(`Status ${response.status} for ${url}. Retrying in ${delay}ms... (Attempt ${attempt}/${maxRetries})`);
+        onProgress?.(
+          `Status ${response.status} for ${url}. Retrying in ${delay}ms... (Attempt ${attempt}/${maxRetries})`,
+        );
         await new Promise((resolve) => setTimeout(resolve, delay));
         delay *= 2;
         continue;
@@ -50,7 +59,9 @@ async function fetchWithRetry(url, options = {}, maxRetries = 3, onProgress) {
       if (attempt === maxRetries) {
         throw error;
       }
-      onProgress?.(`Fetch error: ${error.message} for ${url}. Retrying in ${delay}ms... (Attempt ${attempt}/${maxRetries})`);
+      onProgress?.(
+        `Fetch error: ${error.message} for ${url}. Retrying in ${delay}ms... (Attempt ${attempt}/${maxRetries})`,
+      );
       await new Promise((resolve) => setTimeout(resolve, delay));
       delay *= 2;
     }
@@ -87,7 +98,10 @@ function normalizeImageUrl(url) {
   }
   const parsed = new URL(fullUrl);
   parsed.search = "";
-  parsed.pathname = parsed.pathname.replace(/_(\d+)x(\d+)(@2x)?(?=\.[A-Za-z0-9]+$)/, "");
+  parsed.pathname = parsed.pathname.replace(
+    /_(\d+)x(\d+)(@2x)?(?=\.[A-Za-z0-9]+$)/,
+    "",
+  );
   return parsed.toString();
 }
 
@@ -116,7 +130,12 @@ function toCsv(rows) {
 }
 
 async function requestJson(url, onProgress) {
-  const response = await fetchWithRetry(url, { headers: DEFAULT_HEADERS }, 3, onProgress);
+  const response = await fetchWithRetry(
+    url,
+    { headers: DEFAULT_HEADERS },
+    3,
+    onProgress,
+  );
   if (!response || !response.ok) {
     if (response && response.status === 404) return null;
     return null;
@@ -130,7 +149,12 @@ async function requestJson(url, onProgress) {
 }
 
 async function requestText(url, onProgress) {
-  const response = await fetchWithRetry(url, { headers: DEFAULT_HEADERS }, 3, onProgress);
+  const response = await fetchWithRetry(
+    url,
+    { headers: DEFAULT_HEADERS },
+    3,
+    onProgress,
+  );
   if (!response || !response.ok) {
     if (response && response.status === 404) return "";
     return "";
@@ -157,7 +181,10 @@ function normalizeTags(tags) {
     return tags.map((tag) => String(tag).trim()).filter(Boolean);
   }
   if (typeof tags === "string") {
-    return tags.split(",").map((tag) => tag.trim()).filter(Boolean);
+    return tags
+      .split(",")
+      .map((tag) => tag.trim())
+      .filter(Boolean);
   }
   if (tags === null || tags === undefined) {
     return [];
@@ -172,25 +199,50 @@ function getVariantFields(product) {
     variant_names: variants.map((variant) => variant.title ?? ""),
     sku: variants.map((variant) => variant.sku ?? ""),
     barcode: variants.map((variant) => variant.barcode ?? ""),
-    inventory_quantity: variants.map((variant) => variant.inventory_quantity ?? ""),
+    inventory_quantity: variants.map(
+      (variant) => variant.inventory_quantity ?? "",
+    ),
     inventory_policy: variants.map((variant) => variant.inventory_policy ?? ""),
     weight: variants.map((variant) => variant.grams ?? variant.weight ?? ""),
     weight_unit: variants.map((variant) => variant.weight_unit ?? ""),
     prices: variants.map((variant) => variant.price ?? ""),
-    compare_at_prices: variants.map((variant) => variant.compare_at_price ?? ""),
-    option_names: Array.isArray(product.options) ? product.options.map((option) => option.name ?? "") : [],
-    option_values: Array.isArray(product.options) ? product.options.flatMap((option) => option.values || []) : []
+    compare_at_prices: variants.map(
+      (variant) => variant.compare_at_price ?? "",
+    ),
+    option_names: Array.isArray(product.options)
+      ? product.options.map((option) => option.name ?? "")
+      : [],
+    option_values: Array.isArray(product.options)
+      ? product.options.flatMap((option) => option.values || [])
+      : [],
   };
 }
 
 function parseSections(description) {
-  const text = String(description || "").split(/\n+/).map((line) => line.trim()).filter(Boolean);
-  const sections = { ingredients: "", benefits: "", directions: "", warnings: "" };
+  const text = String(description || "")
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const sections = {
+    ingredients: "",
+    benefits: "",
+    directions: "",
+    warnings: "",
+  };
   let current = "";
-  const buffer = { ingredients: [], benefits: [], directions: [], warnings: [] };
+  const buffer = {
+    ingredients: [],
+    benefits: [],
+    directions: [],
+    warnings: [],
+  };
   for (const line of text) {
     const key = line.toLowerCase().replace(/:$/, "");
-    if (["ingredients", "benefits", "directions", "warnings", "warning"].includes(key)) {
+    if (
+      ["ingredients", "benefits", "directions", "warnings", "warning"].includes(
+        key,
+      )
+    ) {
       current = key === "warning" ? "warnings" : key;
       continue;
     }
@@ -208,7 +260,11 @@ function extractProductImages(product, pageHtml) {
     if (image.src) images.push(normalizeImageUrl(image.src));
   }
   if (!images.length && pageHtml) {
-    const matches = [...pageHtml.matchAll(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/gi)];
+    const matches = [
+      ...pageHtml.matchAll(
+        /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/gi,
+      ),
+    ];
     for (const match of matches) {
       images.push(normalizeImageUrl(match[1]));
     }
@@ -217,25 +273,41 @@ function extractProductImages(product, pageHtml) {
 }
 
 async function discoverFromApi(baseUrl, onProgress) {
+  // Vercel optimization: Limit products in cloud mode to reduce execution time.
+  const MAX_PRODUCTS = 20;
   const products = [];
   let page = 1;
+
   while (true) {
     const url = `${baseUrl}/products.json?limit=250&page=${page}`;
     const payload = await requestJson(url, onProgress);
     const batch = payload?.products || [];
     if (!batch.length) break;
     products.push(...batch);
+    // Vercel optimization: Stop fetching if we have enough for cloud mode.
+    // This check is implicitly for cloud mode via MAX_PRODUCTS, but harmless for local.
+    if (products.length >= MAX_PRODUCTS && new URL(baseUrl).searchParams.get('cloudMode') === 'true') {
+      break;
+    }
     if (batch.length < 250) break;
     page += 1;
   }
-  return dedupeByHandle(products);
+  return dedupeByHandle(products).slice(0, MAX_PRODUCTS);
 }
 
 async function discoverWithPlaywright(baseUrl, onProgress) {
+  // Local mode only: Playwright is not suitable for Vercel serverless functions.
+  const { chromium } = await importPlaywright();
   const browser = await chromium.launch({ headless: true });
-  const page = await browser.newPage({ userAgent: DEFAULT_HEADERS["User-Agent"] });
+  const page = await browser.newPage({
+    userAgent: DEFAULT_HEADERS["User-Agent"],
+  });
   const productUrls = new Set();
-  const queue = [baseUrl, `${baseUrl}/sitemap.xml`, `${baseUrl}/collections/all`];
+  const queue = [
+    baseUrl,
+    `${baseUrl}/sitemap.xml`,
+    `${baseUrl}/collections/all`,
+  ];
   const visited = new Set();
 
   try {
@@ -250,16 +322,23 @@ async function discoverWithPlaywright(baseUrl, onProgress) {
       }
       const html = await page.content();
       if (current.endsWith("sitemap.xml")) {
-        for (const match of html.matchAll(/<loc>(https?:\/\/[^<]+\/products\/[^<]+)<\/loc>/gi)) {
+        for (const match of html.matchAll(
+          /<loc>(https?:\/\/[^<]+\/products\/[^<]+)<\/loc>/gi,
+        )) {
           productUrls.add(match[1]);
         }
       }
-      for (const match of html.matchAll(/href=["']([^"']*\/products\/[^"']+)["']/gi)) {
+      for (const match of html.matchAll(
+        /href=["']([^"']*\/products\/[^"']+)["']/gi,
+      )) {
         productUrls.add(new URL(match[1], baseUrl).toString());
       }
-      for (const match of html.matchAll(/href=["']([^"']*(?:\/collections\/|\/pages\/|\/blogs\/)[^"']+)["']/gi)) {
+      for (const match of html.matchAll(
+        /href=["']([^"']*(?:\/collections\/|\/pages\/|\/blogs\/)[^"']+)["']/gi,
+      )) {
         const candidate = new URL(match[1], baseUrl).toString();
-        if (candidate.startsWith(baseUrl) && !visited.has(candidate)) queue.push(candidate);
+        if (candidate.startsWith(baseUrl) && !visited.has(candidate))
+          queue.push(candidate);
       }
     }
   } finally {
@@ -269,7 +348,10 @@ async function discoverWithPlaywright(baseUrl, onProgress) {
   const results = [];
   for (const productUrl of productUrls) {
     try {
-      const product = await requestJson(`${new URL(productUrl).origin}/products/${new URL(productUrl).pathname.split("/").pop()}.js`, onProgress);
+      const product = await requestJson(
+        `${new URL(productUrl).origin}/products/${new URL(productUrl).pathname.split("/").pop()}.js`,
+        onProgress,
+      );
       if (product) {
         product.product_url = productUrl;
         results.push(product);
@@ -282,17 +364,35 @@ async function discoverWithPlaywright(baseUrl, onProgress) {
 }
 
 async function downloadImage(url, targetPath, onProgress) {
-  const response = await fetchWithRetry(url, { headers: DEFAULT_HEADERS }, 3, onProgress);
-  if (!response || !response.ok) throw new Error(`HTTP ${response ? response.status : "Failed"}`);
+  const response = await fetchWithRetry(
+    url,
+    { headers: DEFAULT_HEADERS },
+    3,
+    onProgress,
+  );
+  if (!response || !response.ok)
+    throw new Error(`HTTP ${response ? response.status : "Failed"}`);
   const buffer = Buffer.from(await response.arrayBuffer());
   await fs.mkdir(path.dirname(targetPath), { recursive: true });
   await fs.writeFile(targetPath, buffer);
   return targetPath;
 }
 
-async function downloadImagesForProduct(outputDir, product, resume, onProgress) {
+async function downloadImagesForProduct(
+  outputDir,
+  product,
+  resume,
+  onProgress,
+) {
   const localPaths = [];
-  const productFolder = path.join(outputDir, "images", safeFilename(`${product.title}__${product.handle}`, product.handle || "product"));
+  const productFolder = path.join(
+    outputDir,
+    "images",
+    safeFilename(
+      `${product.title}__${product.handle}`,
+      product.handle || "product",
+    ),
+  );
   const imageUrls = [...new Set((product.image_urls || []).filter(Boolean))];
   let index = 1;
   for (const imageUrl of imageUrls) {
@@ -323,8 +423,30 @@ async function downloadImagesForProduct(outputDir, product, resume, onProgress) 
 
 function flattenRecord(record) {
   const flat = { ...record };
-  for (const key of ["collections", "tags", "variants", "variant_ids", "variant_names", "sku", "barcode", "inventory_quantity", "inventory_policy", "weight", "weight_unit", "option_names", "option_values", "gallery_images", "image_urls", "alt_text", "image_local_paths", "meta_fields"]) {
-    if (Array.isArray(flat[key]) || (flat[key] && typeof flat[key] === "object")) {
+  for (const key of [
+    "collections",
+    "tags",
+    "variants",
+    "variant_ids",
+    "variant_names",
+    "sku",
+    "barcode",
+    "inventory_quantity",
+    "inventory_policy",
+    "weight",
+    "weight_unit",
+    "option_names",
+    "option_values",
+    "gallery_images",
+    "image_urls",
+    "alt_text",
+    "image_local_paths",
+    "meta_fields",
+  ]) {
+    if (
+      Array.isArray(flat[key]) ||
+      (flat[key] && typeof flat[key] === "object")
+    ) {
       flat[key] = JSON.stringify(flat[key], null, 2);
     }
   }
@@ -343,22 +465,41 @@ async function exportFiles(outputDir, records, summary, persistToDisk = true) {
     `Images downloaded: ${summary.totalImagesDownloaded}`,
     `Failures: ${summary.totalFailures}`,
     `Duplicates skipped: ${summary.totalDuplicates}`,
-    `Execution time (seconds): ${summary.elapsedSeconds.toFixed(2)}`
+    `Execution time (seconds): ${summary.elapsedSeconds.toFixed(2)}`,
   ].join("\n");
 
+  // Vercel optimization: Skip Excel generation in cloud mode.
+  if (!persistToDisk) {
+    return { csv, json, report, xlsxBase64: "" };
+  }
   const workbook = new ExcelJS.Workbook();
   const sheet = workbook.addWorksheet("Products");
-  sheet.columns = Object.keys(flatRows[0] || { message: "" }).map((key) => ({ header: key, key, width: 24 }));
-  for (const row of flatRows) {
-    sheet.addRow(row);
+
+  if (flatRows.length > 0) {
+    sheet.columns = Object.keys(flatRows[0]).map((key) => ({
+      header: key,
+      key,
+      width: 24,
+    }));
+    for (const row of flatRows) {
+      sheet.addRow(row);
+    }
+  } else {
+    sheet.columns = [{ header: "No Data", key: "message", width: 24 }];
+    sheet.addRow({ message: "No products scraped." });
   }
+  const ExcelJS = (await importExcelJS()).default;
   const xlsxBuffer = Buffer.from(await workbook.xlsx.writeBuffer());
 
   if (persistToDisk) {
     await fs.mkdir(outputDir, { recursive: true });
     await fs.writeFile(path.join(outputDir, "products.csv"), csv, "utf8");
     await fs.writeFile(path.join(outputDir, "products.json"), json, "utf8");
-    await fs.writeFile(path.join(outputDir, "download_report.txt"), report, "utf8");
+    await fs.writeFile(
+      path.join(outputDir, "download_report.txt"),
+      report,
+      "utf8",
+    );
     await fs.writeFile(path.join(outputDir, "products.xlsx"), xlsxBuffer);
   }
 
@@ -366,7 +507,7 @@ async function exportFiles(outputDir, records, summary, persistToDisk = true) {
     csv,
     json,
     report,
-    xlsxBase64: xlsxBuffer.toString("base64")
+    xlsxBase64: xlsxBuffer.toString("base64"),
   };
 }
 
@@ -378,18 +519,18 @@ function buildSummary() {
     totalImagesDownloaded: 0,
     totalFailures: 0,
     totalDuplicates: 0,
-    elapsedSeconds: 0
+    elapsedSeconds: 0,
   };
 }
 
 export async function scrapeStore({
   storeUrl,
   downloadImages = true,
-  threads = 6,
+  threads = 2,
   resume = false,
   onProgress = () => {},
   onStats = () => {},
-  cloudMode = false
+  cloudMode = false,
 }) {
   const baseUrl = normalizeStoreUrl(storeUrl);
   onProgress(`Scraping ${baseUrl}`);
@@ -399,7 +540,8 @@ export async function scrapeStore({
 
   const parsedUrl = new URL(baseUrl);
   const pathParts = parsedUrl.pathname.split("/").filter(Boolean);
-  const isProductPage = pathParts.length >= 2 && pathParts[pathParts.length - 2] === "products";
+  const isProductPage =
+    pathParts.length >= 2 && pathParts[pathParts.length - 2] === "products";
 
   if (isProductPage) {
     const handle = pathParts[pathParts.length - 1];
@@ -416,8 +558,18 @@ export async function scrapeStore({
   } else {
     products = await discoverFromApi(baseUrl, onProgress);
     if (!products.length) {
-      sourceMode = "crawl";
-      products = await discoverWithPlaywright(baseUrl, onProgress);
+      if (cloudMode) {
+        throw new Error( // Vercel optimization: Fail fast if API is blocked in cloud mode.
+          "This store blocks the Shopify Products API. Crawling is disabled in cloud mode.",
+        );
+      } else {
+        onProgress("Shopify Products API returned no products. Attempting to crawl with Playwright...");
+        sourceMode = "crawl";
+        products = await discoverWithPlaywright(baseUrl, onProgress);
+        if (!products.length) {
+          throw new Error("Failed to discover any products via API or crawling. The store might be empty or inaccessible.");
+        }
+      }
     }
   }
 
@@ -425,13 +577,24 @@ export async function scrapeStore({
   summary.totalProductsFound = products.length;
   onStats(summary);
 
-  const outputBase = cloudMode ? path.join("/tmp", "output") : path.join(process.cwd(), "output");
-  const outputDir = path.join(outputBase, safeFilename(new URL(baseUrl).hostname));
+  const outputBase = cloudMode
+    ? path.join("/tmp", "output")
+    : path.join(process.cwd(), "output");
+  const outputDir = path.join(
+    outputBase,
+    safeFilename(new URL(baseUrl).hostname),
+  );
   const started = Date.now();
 
   const records = await pool(products, threads, async (product) => {
     try {
-      const productPageHtml = await requestText(product.product_url || `${baseUrl}/products/${product.handle}`, onProgress);
+      let productPageHtml = "";
+      if (!cloudMode) { // Local mode only: Fetch full page HTML.
+        productPageHtml = await requestText(
+          product.product_url || `${baseUrl}/products/${product.handle}`,
+          onProgress,
+        );
+      }
       const sections = parseSections(stripHtml(product.body_html || ""));
       const variantFields = getVariantFields(product);
       const imageUrls = extractProductImages(product, productPageHtml);
@@ -448,7 +611,8 @@ export async function scrapeStore({
         created_at: product.created_at || "",
         updated_at: product.updated_at || "",
         description: stripHtml(product.body_html || ""),
-        short_description: stripHtml(product.body_html || "").split("\n")[0] || "",
+        short_description:
+          stripHtml(product.body_html || "").split("\n")[0] || "",
         ingredients: sections.ingredients,
         benefits: sections.benefits,
         directions: sections.directions,
@@ -471,15 +635,21 @@ export async function scrapeStore({
         gallery_images: imageUrls.slice(1),
         image_urls: imageUrls,
         alt_text: [],
-        product_url: product.product_url || `${baseUrl}/products/${product.handle}`,
+        product_url:
+          product.product_url || `${baseUrl}/products/${product.handle}`,
         seo_title: "",
         seo_description: "",
         meta_fields: {},
-        image_local_paths: []
+        image_local_paths: [],
       };
 
-      if (downloadImages && imageUrls.length && !cloudMode) {
-        record.image_local_paths = await downloadImagesForProduct(outputDir, record, resume, onProgress);
+      if (downloadImages && imageUrls.length && !cloudMode) { // Local mode only: Download images.
+        record.image_local_paths = await downloadImagesForProduct(
+          outputDir,
+          record,
+          resume,
+          onProgress,
+        );
         summary.totalImagesDownloaded += record.image_local_paths.length;
       }
 
@@ -491,14 +661,21 @@ export async function scrapeStore({
     } catch (err) {
       summary.totalFailures += 1;
       onStats(summary);
-      onProgress(`Failed to process ${product.title || product.handle || "product"}: ${err.message}`);
+      onProgress(
+        `Failed to process ${product.title || product.handle || "product"}: ${err.message}`,
+      );
       return null;
     }
   });
 
   const finalRecords = records.filter(Boolean);
   summary.elapsedSeconds = (Date.now() - started) / 1000;
-  const downloads = await exportFiles(outputDir, finalRecords, summary, !cloudMode);
+  const downloads = await exportFiles(
+    outputDir,
+    finalRecords,
+    summary,
+    !cloudMode,
+  );
 
   return {
     sourceMode,
@@ -507,10 +684,21 @@ export async function scrapeStore({
     outputDir: cloudMode ? "(cloud temporary storage)" : outputDir,
     downloads,
     files: {
-      csv: cloudMode ? "" : path.relative(process.cwd(), path.join(outputDir, "products.csv")),
-      xlsx: cloudMode ? "" : path.relative(process.cwd(), path.join(outputDir, "products.xlsx")),
-      json: cloudMode ? "" : path.relative(process.cwd(), path.join(outputDir, "products.json")),
-      report: cloudMode ? "" : path.relative(process.cwd(), path.join(outputDir, "download_report.txt"))
-    }
+      csv: cloudMode
+        ? ""
+        : path.relative(process.cwd(), path.join(outputDir, "products.csv")),
+      xlsx: cloudMode
+        ? ""
+        : path.relative(process.cwd(), path.join(outputDir, "products.xlsx")),
+      json: cloudMode
+        ? ""
+        : path.relative(process.cwd(), path.join(outputDir, "products.json")),
+      report: cloudMode
+        ? ""
+        : path.relative(
+            process.cwd(),
+            path.join(outputDir, "download_report.txt"),
+          ),
+    },
   };
 }
