@@ -38,6 +38,12 @@ function setDownloadLink(link, href) {
 }
 
 async function saveLatest(result) {
+  try {
+    localStorage.setItem("shopify_scraper_latest", JSON.stringify(result));
+  } catch (e) {
+    // Fail silently
+  }
+
   await fetch("/api/scrape/latest", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -105,17 +111,47 @@ function triggerArtifactDownloads(downloads, storeUrl) {
 // Restore last run details on page load
 async function loadLatestResult() {
   try {
+    // 1. Try restoring from localStorage first (fast, serverless-friendly fallback)
+    const localData = localStorage.getItem("shopify_scraper_latest");
+    if (localData) {
+      const result = JSON.parse(localData);
+      if (result) {
+        const { summary, files, sourceMode, outputDir } = result;
+        updateSummary(summary || {});
+        if (files) {
+          setDownloadLink(csvLink, files.csv);
+          setDownloadLink(xlsxLink, files.xlsx);
+          setDownloadLink(jsonLink, files.json);
+          setDownloadLink(reportLink, files.report);
+        }
+        log(`Restored previous scrape from browser storage. Source mode: ${sourceMode}.`);
+        if (outputDir) {
+          log(`Files are in ${outputDir}`);
+        }
+        return;
+      }
+    }
+
+    // 2. Fallback to API if not in localStorage
     const res = await fetch("/api/scrape/latest");
+    const contentType = res.headers.get("content-type");
+    if (!res.ok || !contentType || !contentType.includes("application/json")) {
+      return;
+    }
     const payload = await res.json();
     if (payload.ok && payload.result) {
       const { summary, files, sourceMode, outputDir } = payload.result;
-      updateSummary(summary);
-      setDownloadLink(csvLink, files.csv);
-      setDownloadLink(xlsxLink, files.xlsx);
-      setDownloadLink(jsonLink, files.json);
-      setDownloadLink(reportLink, files.report);
-      log(`Restored previous scrape. Source mode: ${sourceMode}.`);
-      log(`Files are in ${outputDir}`);
+      updateSummary(summary || {});
+      if (files) {
+        setDownloadLink(csvLink, files.csv);
+        setDownloadLink(xlsxLink, files.xlsx);
+        setDownloadLink(jsonLink, files.json);
+        setDownloadLink(reportLink, files.report);
+      }
+      log(`Restored previous scrape from server. Source mode: ${sourceMode}.`);
+      if (outputDir) {
+        log(`Files are in ${outputDir}`);
+      }
     }
   } catch (err) {
     // Fail silently
