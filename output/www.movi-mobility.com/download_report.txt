@@ -1,0 +1,8 @@
+Shopify Scraper Report
+Products found: 1
+Products scraped: 1
+Variants: 1
+Images downloaded: 5
+Failures: 0
+Duplicates skipped: 0
+Execution time (seconds): 101.39

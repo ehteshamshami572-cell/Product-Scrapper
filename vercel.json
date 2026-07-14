@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "functions": {
+    "api/scrape.js": {
+      "maxDuration": 60,
+      "memory": 1024
+    }
+  },
+  "routes": [
+    { "src": "/api/scrape", "dest": "/api/scrape.js" },
+    { "src": "/(.*)", "dest": "/public/$1" },
+    { "src": "/", "dest": "/public/index.html" }
+  ]
+}

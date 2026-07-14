@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Shopify Web Scraper</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <p class="eyebrow">Local website app</p>
+        <h1>Scrape any public Shopify store from your computer.</h1>
+        <p class="subhead">Paste a store URL, start the scrape, and download Excel, CSV, JSON, images, and a report.</p>
+      </section>
+
+      <section class="panel form-panel">
+        <label for="storeUrl">Shopify Store URL</label>
+        <input id="storeUrl" type="url" placeholder="https://example.com" />
+
+        <div class="options">
+          <label><input id="downloadImages" type="checkbox" checked /> Download images</label>
+          <label><input id="resumeRun" type="checkbox" /> Resume last run</label>
+        </div>
+
+        <div class="actions">
+          <button id="startBtn">Start Scrape</button>
+          <button id="clearBtn" class="secondary">Clear Output</button>
+        </div>
+      </section>
+
+      <section class="panel status-panel">
+        <div class="stats">
+          <div><span>Found</span><strong id="foundCount">0</strong></div>
+          <div><span>Scraped</span><strong id="scrapedCount">0</strong></div>
+          <div><span>Variants</span><strong id="variantsCount">0</strong></div>
+          <div><span>Images</span><strong id="imagesCount">0</strong></div>
+        </div>
+        <pre id="log" class="log"></pre>
+        <div class="downloads">
+          <a id="csvLink" href="#" download>Download CSV</a>
+          <a id="xlsxLink" href="#" download>Download Excel</a>
+          <a id="jsonLink" href="#" download>Download JSON</a>
+          <a id="reportLink" href="#" download>Download Report</a>
+        </div>
+      </section>
+    </main>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

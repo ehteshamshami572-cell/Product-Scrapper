@@ -1,0 +1,101 @@
+[
+  {
+    "id": 7563777376333,
+    "handle": "movi-cushion",
+    "title": "The Movi Cushion",
+    "vendor": "MOVI-MOBILITY",
+    "product_type": "",
+    "collections": [],
+    "tags": [],
+    "status": "active",
+    "published_at": "2026-03-24T11:24:13+04:00",
+    "created_at": "2025-09-15T20:15:37+04:00",
+    "updated_at": "2026-07-14T10:02:36+04:00",
+    "description": "The MOVI Cushion assists people struggling to get up off their chairs by themselves, making it easier for them to stand up, whilst also being comfortable for them to sit on our high-quality memory foam cushion. It reduces pressure on the knees, hips and lower back. Use it on a chair or sofa to move with greater ease and confidence every day. Why do people choose MOVI: • Reduces joint strain • Fast battery-powered lift • Comfortable, supportive design • Next working-day UK delivery with Royal Mail (tracked &amp; signed) Less strain. Stand with ease. More freedom.",
+    "short_description": "The MOVI Cushion assists people struggling to get up off their chairs by themselves, making it easier for them to stand up, whilst also being comfortable for them to sit on our high-quality memory foam cushion. It reduces pressure on the knees, hips and lower back. Use it on a chair or sofa to move with greater ease and confidence every day. Why do people choose MOVI: • Reduces joint strain • Fast battery-powered lift • Comfortable, supportive design • Next working-day UK delivery with Royal Mail (tracked &amp; signed) Less strain. Stand with ease. More freedom.",
+    "ingredients": "",
+    "benefits": "",
+    "directions": "",
+    "warnings": "",
+    "price": "110.00",
+    "compare_at_price": "135.00",
+    "currency": "",
+    "variants": [
+      {
+        "id": 42097707778125,
+        "title": "Default Title",
+        "option1": "Default Title",
+        "option2": null,
+        "option3": null,
+        "sku": null,
+        "requires_shipping": false,
+        "taxable": false,
+        "featured_image": null,
+        "available": true,
+        "price": "110.00",
+        "grams": 0,
+        "compare_at_price": "135.00",
+        "position": 1,
+        "product_id": 7563777376333,
+        "created_at": "2025-09-15T20:15:37+04:00",
+        "updated_at": "2026-07-14T10:02:36+04:00"
+      }
+    ],
+    "variant_ids": [
+      42097707778125
+    ],
+    "variant_names": [
+      "Default Title"
+    ],
+    "sku": [
+      ""
+    ],
+    "barcode": [
+      ""
+    ],
+    "inventory_quantity": [
+      ""
+    ],
+    "inventory_policy": [
+      ""
+    ],
+    "weight": [
+      0
+    ],
+    "weight_unit": [
+      ""
+    ],
+    "option_names": [
+      "Title"
+    ],
+    "option_values": [
+      "Default Title"
+    ],
+    "featured_image": "https://cdn.shopify.com/s/files/1/0660/8679/7389/files/MOVI_Premium_Dynamic_Angle_Apple_Style.png",
+    "gallery_images": [
+      "https://cdn.shopify.com/s/files/1/0660/8679/7389/files/MOVI_Premium_Side_Control_Apple_Style.png",
+      "https://cdn.shopify.com/s/files/1/0660/8679/7389/files/MOVI_Premium_Front_Apple_Style.png",
+      "https://cdn.shopify.com/s/files/1/0660/8679/7389/files/MOVI_Premium_Top_Apple_Style.png",
+      "https://cdn.shopify.com/s/files/1/0660/8679/7389/files/MOVI_Ecommerce_Control_Panel_White.png"
+    ],
+    "image_urls": [
+      "https://cdn.shopify.com/s/files/1/0660/8679/7389/files/MOVI_Premium_Dynamic_Angle_Apple_Style.png",
+      "https://cdn.shopify.com/s/files/1/0660/8679/7389/files/MOVI_Premium_Side_Control_Apple_Style.png",
+      "https://cdn.shopify.com/s/files/1/0660/8679/7389/files/MOVI_Premium_Front_Apple_Style.png",
+      "https://cdn.shopify.com/s/files/1/0660/8679/7389/files/MOVI_Premium_Top_Apple_Style.png",
+      "https://cdn.shopify.com/s/files/1/0660/8679/7389/files/MOVI_Ecommerce_Control_Panel_White.png"
+    ],
+    "alt_text": [],
+    "product_url": "https://www.movi-mobility.com//products/movi-cushion",
+    "seo_title": "",
+    "seo_description": "",
+    "meta_fields": {},
+    "image_local_paths": [
+      "C:\\Users\\USer\\Desktop\\product scrapper\\shopify_web_app\\output\\www.movi-mobility.com\\images\\The-Movi-Cushion__movi-cushion\\image_1.png",
+      "C:\\Users\\USer\\Desktop\\product scrapper\\shopify_web_app\\output\\www.movi-mobility.com\\images\\The-Movi-Cushion__movi-cushion\\image_2.png",
+      "C:\\Users\\USer\\Desktop\\product scrapper\\shopify_web_app\\output\\www.movi-mobility.com\\images\\The-Movi-Cushion__movi-cushion\\image_3.png",
+      "C:\\Users\\USer\\Desktop\\product scrapper\\shopify_web_app\\output\\www.movi-mobility.com\\images\\The-Movi-Cushion__movi-cushion\\image_4.png",
+      "C:\\Users\\USer\\Desktop\\product scrapper\\shopify_web_app\\output\\www.movi-mobility.com\\images\\The-Movi-Cushion__movi-cushion\\image_5.png"
+    ]
+  }
+]
