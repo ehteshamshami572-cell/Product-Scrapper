@@ -40,8 +40,8 @@ function setDownloadLink(link, href) {
 async function saveLatest(result) {
   try {
     localStorage.setItem("shopify_scraper_latest", JSON.stringify(result));
-  } catch (e) {
-    // Fail silently
+  } catch (error) {
+    log(`Error saving to local storage: ${error.message}`);
   }
 
   await fetch("/api/scrape/latest", {
@@ -114,7 +114,13 @@ async function loadLatestResult() {
     // 1. Try restoring from localStorage first (fast, serverless-friendly fallback)
     const localData = localStorage.getItem("shopify_scraper_latest");
     if (localData) {
-      const result = JSON.parse(localData);
+      let result = null;
+      try {
+        result = JSON.parse(localData);
+      } catch (parseError) {
+        log(`Error parsing local storage data: ${parseError.message}. Clearing invalid data.`);
+        localStorage.removeItem("shopify_scraper_latest"); // Clear invalid data
+      }
       if (result) {
         const { summary, files, sourceMode, outputDir } = result;
         updateSummary(summary || {});
@@ -155,6 +161,7 @@ async function loadLatestResult() {
     }
   } catch (err) {
     // Fail silently
+        log(`Error loading latest result: ${err.message}`);
   }
 }
 
