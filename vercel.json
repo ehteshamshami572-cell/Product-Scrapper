@@ -4,10 +4,20 @@
     "api/scrape.js": {
       "maxDuration": 60,
       "memory": 1024
+    },
+    "api/analyze.js": {
+      "maxDuration": 30,
+      "memory": 1024
+    },
+    "api/export.js": {
+      "maxDuration": 60,
+      "memory": 1024
     }
   },
   "routes": [
+    { "src": "/api/analyze", "dest": "/api/analyze.js" },
     { "src": "/api/scrape", "dest": "/api/scrape.js" },
+    { "src": "/api/export", "dest": "/api/export.js" },
     { "src": "/(.*)", "dest": "/public/$1" },
     { "src": "/", "dest": "/public/index.html" }
   ]
