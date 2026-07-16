@@ -1,50 +1,300 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Shopify Web Scraper</title>
+    <title>Inspector & Scraper - SaaS Website Analysis Platform</title>
+    <!-- Modern Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <main class="shell">
-      <section class="hero">
-        <p class="eyebrow">Local website app</p>
-        <h1>Scrape any public Shopify store from your computer.</h1>
-        <p class="subhead">Paste a store URL, start the scrape, and download Excel, CSV, JSON, images, and a report.</p>
+    <!-- Toast Notifications Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <header class="app-header">
+      <div class="header-content">
+        <div class="logo-area">
+          <div class="logo-glow"></div>
+          <span class="logo-text">SPECTRUM</span>
+          <span class="logo-tag">WEB ANALYZER</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle dark mode">
+          <svg class="sun-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+          <svg class="moon-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <main class="main-container">
+      <!-- Search & Control Panel -->
+      <section class="control-panel">
+        <div class="panel-background"></div>
+        <div class="control-content">
+          <h1>Analyze any E-commerce Site in seconds</h1>
+          <p class="subtitle">Enter a website URL to instantly detect its CMS, theme, and technology stack. Perform clean, structured product data extraction on demand.</p>
+          
+          <div class="input-group">
+            <div class="input-wrapper">
+              <svg class="url-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+              <input id="storeUrl" type="url" placeholder="https://example-shop.com" required />
+            </div>
+            <div class="button-row">
+              <button id="analyzeBtn" class="primary-btn">
+                <span>Analyze Website</span>
+                <span class="btn-shine"></span>
+              </button>
+              <button id="scrapeBtn" class="accent-btn" disabled>
+                <span>Scrape Products</span>
+                <span class="btn-shine"></span>
+              </button>
+              <button id="clearBtn" class="secondary-btn">
+                <span>Clear Results</span>
+                <span class="btn-shine"></span>
+              </button>
+            </div>
+          </div>
+        </div>
       </section>
 
-      <section class="panel form-panel">
-        <label for="storeUrl">Shopify Store URL</label>
-        <input id="storeUrl" type="url" placeholder="https://example.com" />
+      <!-- Analysis Status & Live Logs -->
+      <section id="status-section" class="status-section hidden">
+        <div class="status-header">
+          <div class="status-title">
+            <span class="status-dot pulsing"></span>
+            <span id="status-text">Analyzing site homepage...</span>
+          </div>
+          <div id="progress-container" class="progress-bar-wrapper hidden">
+            <div class="progress-bar-track">
+              <div id="progress-bar-fill" class="progress-bar-fill" style="width: 0%"></div>
+            </div>
+            <span id="progress-percent" class="progress-percent">0%</span>
+          </div>
+        </div>
+        <div class="console-box">
+          <div class="console-header">
+            <span>ACTIVITY CONSOLE</span>
+            <button id="clearConsoleBtn" class="text-btn">Clear logs</button>
+          </div>
+          <pre id="log" class="console-log"></pre>
+        </div>
+      </section>
 
-        <div class="options">
-          <label><input id="downloadImages" type="checkbox" checked /> Download images</label>
-          <label><input id="resumeRun" type="checkbox" /> Resume last run</label>
+      <!-- Dashboard Grid -->
+      <section id="dashboard" class="dashboard-grid hidden">
+        
+        <!-- Sidebar Summary Cards -->
+        <div class="dashboard-sidebar">
+          
+          <!-- CMS Detection Card -->
+          <div class="dashboard-card cms-card">
+            <div class="card-glow"></div>
+            <h3>CMS Platform</h3>
+            <div class="cms-value-wrapper">
+              <span id="cms-name" class="cms-badge">Detecting...</span>
+              <div class="confidence-wrapper">
+                <span class="confidence-label">Confidence:</span>
+                <span id="cms-confidence" class="confidence-val">--</span>
+              </div>
+            </div>
+            <!-- Confidence Meter -->
+            <div class="confidence-bar-track">
+              <div id="cms-confidence-fill" class="confidence-bar-fill" style="width: 0%"></div>
+            </div>
+          </div>
+
+          <!-- Theme Details Card -->
+          <div class="dashboard-card theme-card">
+            <div class="card-glow"></div>
+            <h3>Active Theme</h3>
+            <div class="theme-details">
+              <div class="theme-field">
+                <span class="field-label">Name:</span>
+                <strong id="theme-name">--</strong>
+              </div>
+              <div class="theme-field">
+                <span class="field-label">Version:</span>
+                <strong id="theme-version">--</strong>
+              </div>
+              <div id="theme-id-wrapper" class="theme-field hidden">
+                <span class="field-label">ID:</span>
+                <strong id="theme-id">--</strong>
+              </div>
+              <div id="theme-author-wrapper" class="theme-field hidden">
+                <span class="field-label">Author:</span>
+                <strong id="theme-author">--</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Product Scan Stats Card -->
+          <div class="dashboard-card stats-card">
+            <div class="card-glow"></div>
+            <h3>Discovery Scan</h3>
+            <div class="stats-grid">
+              <div class="stat-item">
+                <span>Products Found</span>
+                <strong id="stat-products">--</strong>
+              </div>
+              <div class="stat-item">
+                <span>Collections</span>
+                <strong id="stat-collections">--</strong>
+              </div>
+              <div class="stat-item">
+                <span>Source</span>
+                <strong id="stat-source">--</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Action Download Center -->
+          <div class="dashboard-card download-card">
+            <div class="card-glow"></div>
+            <h3>Export Center</h3>
+            <p class="export-hint">Export options are enabled after completing a full product scrape.</p>
+            <div class="download-buttons">
+              <button id="downloadCsvBtn" class="download-btn" disabled>
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                <span>Download Product CSV</span>
+              </button>
+              <button id="downloadZipBtn" class="download-btn" disabled>
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                <span>Download Images ZIP</span>
+              </button>
+            </div>
+          </div>
+
         </div>
 
-        <div class="actions">
-          <button id="startBtn">Start Scrape</button>
-          <button id="clearBtn" class="secondary">Clear Output</button>
+        <!-- Main Content Area -->
+        <div class="dashboard-content">
+          
+          <!-- Navigation Tabs -->
+          <div class="tabs-nav">
+            <button class="tab-btn active" data-tab="tech-tab">CMS & Technologies</button>
+            <button class="tab-btn" data-tab="meta-tab">SEO & Meta</button>
+            <button class="tab-btn" data-tab="products-tab" id="products-tab-nav" disabled>Scraped Products (<span id="products-count-badge">0</span>)</button>
+            <button class="tab-btn" data-tab="images-tab" id="images-tab-nav" disabled>Images Gallery (<span id="images-count-badge">0</span>)</button>
+            <button class="tab-btn" data-tab="json-tab">Raw Response</button>
+          </div>
+
+          <!-- Tab 1: Technology Grid -->
+          <div id="tech-tab" class="tab-content active">
+            <div class="tab-header">
+              <h2>Detected Technologies</h2>
+              <p>Frameworks, hosting services, CDNs, and libraries powering this site.</p>
+            </div>
+            <div id="tech-grid" class="tech-grid">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <!-- Tab 2: SEO Meta -->
+          <div id="meta-tab" class="tab-content">
+            <div class="tab-header">
+              <h2>SEO & Document Metadata</h2>
+              <p>Header information parsed from the webpage head elements.</p>
+            </div>
+            <div class="meta-details-list">
+              <div class="meta-row">
+                <span class="meta-label">Favicon</span>
+                <div class="meta-value">
+                  <img id="meta-favicon" src="" alt="Favicon" class="favicon-img" onerror="this.style.display='none'" />
+                  <span id="meta-favicon-url" class="mono-text">--</span>
+                </div>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">Page Title</span>
+                <div id="meta-title" class="meta-value">--</div>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">Meta Description</span>
+                <div id="meta-description" class="meta-value">--</div>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">Site Generator</span>
+                <div id="meta-generator" class="meta-value">--</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab 3: Products Table -->
+          <div id="products-tab" class="tab-content">
+            <div class="tab-header">
+              <h2>Scraped Product List</h2>
+              <p>Full list of products extracted from the website. Excludes raw JSON markup.</p>
+            </div>
+            <div class="table-wrapper">
+              <table id="products-table">
+                <thead>
+                  <tr>
+                    <th>Title</th>
+                    <th>Price</th>
+                    <th>Vendor</th>
+                    <th>Type</th>
+                    <th>Variants</th>
+                    <th>URL</th>
+                  </tr>
+                </thead>
+                <tbody id="products-tbody">
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Tab 4: Images Grid -->
+          <div id="images-tab" class="tab-content">
+            <div class="tab-header">
+              <h2>Product Image Gallery</h2>
+              <p>Thumbnails, resolution, filenames, and alt tags. Download individual images or bundle them into a ZIP in the sidebar.</p>
+            </div>
+            <div id="images-grid" class="images-grid">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <!-- Tab 5: Raw JSON -->
+          <div id="json-tab" class="tab-content">
+            <div class="tab-header">
+              <h2>Raw Analysis JSON</h2>
+              <p>The raw, unparsed JSON payload returned by the analyzer API. Hidden by default for UX simplicity.</p>
+              <button id="toggleRawJsonBtn" class="secondary-btn">Show Raw JSON</button>
+            </div>
+            <div id="raw-json-container" class="raw-json-container hidden">
+              <button id="copyJsonBtn" class="text-btn copy-btn">Copy JSON</button>
+              <pre id="raw-json-block" class="json-code"></pre>
+            </div>
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- Skeleton Dashboard Loader -->
+      <section id="skeleton-loader" class="dashboard-grid skeleton-grid hidden">
+        <div class="dashboard-sidebar">
+          <div class="skeleton-card skeleton-pulse"></div>
+          <div class="skeleton-card skeleton-pulse"></div>
+          <div class="skeleton-card skeleton-pulse"></div>
+        </div>
+        <div class="dashboard-content">
+          <div class="skeleton-tabs skeleton-pulse"></div>
+          <div class="skeleton-body skeleton-pulse" style="height: 350px"></div>
         </div>
       </section>
 
-      <section class="panel status-panel">
-        <div class="stats">
-          <div><span>Found</span><strong id="foundCount">0</strong></div>
-          <div><span>Scraped</span><strong id="scrapedCount">0</strong></div>
-          <div><span>Variants</span><strong id="variantsCount">0</strong></div>
-          <div><span>Images</span><strong id="imagesCount">0</strong></div>
-        </div>
-        <pre id="log" class="log"></pre>
-        <div class="downloads">
-          <a id="csvLink" href="#" download>Download CSV</a>
-          <a id="xlsxLink" href="#" download>Download Excel</a>
-          <a id="jsonLink" href="#" download>Download JSON</a>
-          <a id="reportLink" href="#" download>Download Report</a>
-        </div>
-      </section>
     </main>
+
+    <footer class="app-footer">
+      <div class="footer-content">
+        <p>&copy; 2026 Spectrum Web Inspector. Built for professional website scanning.</p>
+      </div>
+    </footer>
+
+    <!-- Frontend client script -->
     <script type="module" src="app.js"></script>
   </body>
 </html>
