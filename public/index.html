@@ -34,7 +34,7 @@
         <div class="panel-background"></div>
         <div class="control-content">
           <h1>Analyze any E-commerce Site in seconds</h1>
-          <p class="subtitle">Enter a website URL to instantly detect its CMS, theme, and technology stack. Perform clean, structured product data extraction on demand.</p>
+          <p class="subtitle">Extract products into 100% official Shopify-compatible CSV (Active status), download all product images, website banners, and videos in bulk.</p>
           
           <div class="input-group">
             <div class="input-wrapper">
@@ -47,7 +47,7 @@
                 <span class="btn-shine"></span>
               </button>
               <button id="scrapeBtn" class="accent-btn" disabled>
-                <span>Scrape Products</span>
+                <span>Scrape Products & Media</span>
                 <span class="btn-shine"></span>
               </button>
               <button id="clearBtn" class="secondary-btn">
@@ -135,8 +135,20 @@
             <h3>Discovery Scan</h3>
             <div class="stats-grid">
               <div class="stat-item">
-                <span>Products Found</span>
+                <span>Products</span>
                 <strong id="stat-products">--</strong>
+              </div>
+              <div class="stat-item">
+                <span>Product Images</span>
+                <strong id="stat-product-images">--</strong>
+              </div>
+              <div class="stat-item">
+                <span>Site Images</span>
+                <strong id="stat-site-images">--</strong>
+              </div>
+              <div class="stat-item">
+                <span>Videos Found</span>
+                <strong id="stat-videos">--</strong>
               </div>
               <div class="stat-item">
                 <span>Collections</span>
@@ -152,16 +164,46 @@
           <!-- Action Download Center -->
           <div class="dashboard-card download-card">
             <div class="card-glow"></div>
-            <h3>Export Center</h3>
-            <p class="export-hint">Export options are enabled after completing a full product scrape.</p>
+            <div class="card-header-flex">
+              <h3>Export Center</h3>
+              <span class="shopify-badge">Shopify Ready</span>
+            </div>
+            <p class="export-hint">Export official Shopify CSV (Status: Active) & download all media (product photos, website banners, and videos).</p>
             <div class="download-buttons">
-              <button id="downloadCsvBtn" class="download-btn" disabled>
+              <!-- Shopify CSV Download -->
+              <button id="downloadCsvBtn" class="download-btn highlight-btn" disabled>
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                <span>Download Product CSV</span>
+                <div class="btn-text-block">
+                  <span class="btn-title">Download Shopify CSV</span>
+                  <span class="btn-subtitle">Status: Active • Direct Import</span>
+                </div>
               </button>
-              <button id="downloadZipBtn" class="download-btn" disabled>
+
+              <!-- Product Images ZIP -->
+              <button id="downloadProductZipBtn" class="download-btn" disabled>
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                <div class="btn-text-block">
+                  <span class="btn-title">Product Images ZIP</span>
+                  <span class="btn-subtitle">All gallery & variant photos</span>
+                </div>
+              </button>
+
+              <!-- Website Media ZIP -->
+              <button id="downloadWebsiteZipBtn" class="download-btn" disabled>
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                <div class="btn-text-block">
+                  <span class="btn-title">Website Media ZIP</span>
+                  <span class="btn-subtitle">Site banners, logos & videos</span>
+                </div>
+              </button>
+
+              <!-- All Media Bundle ZIP -->
+              <button id="downloadAllZipBtn" class="download-btn all-bundle-btn" disabled>
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                <span>Download Images ZIP</span>
+                <div class="btn-text-block">
+                  <span class="btn-title">Download All Media ZIP</span>
+                  <span class="btn-subtitle">Organized in folders (Bulk)</span>
+                </div>
               </button>
             </div>
           </div>
@@ -176,7 +218,7 @@
             <button class="tab-btn active" data-tab="tech-tab">CMS & Technologies</button>
             <button class="tab-btn" data-tab="meta-tab">SEO & Meta</button>
             <button class="tab-btn" data-tab="products-tab" id="products-tab-nav" disabled>Scraped Products (<span id="products-count-badge">0</span>)</button>
-            <button class="tab-btn" data-tab="images-tab" id="images-tab-nav" disabled>Images Gallery (<span id="images-count-badge">0</span>)</button>
+            <button class="tab-btn" data-tab="images-tab" id="images-tab-nav" disabled>Media Gallery (<span id="images-count-badge">0</span>)</button>
             <button class="tab-btn" data-tab="json-tab">Raw Response</button>
           </div>
 
@@ -224,7 +266,7 @@
           <div id="products-tab" class="tab-content">
             <div class="tab-header">
               <h2>Scraped Product List</h2>
-              <p>Full list of products extracted from the website. Excludes raw JSON markup.</p>
+              <p>Products formatted to Shopify specifications with status <code>active</code>, variant mapping, and image URLs.</p>
             </div>
             <div class="table-wrapper">
               <table id="products-table">
@@ -235,6 +277,7 @@
                     <th>Vendor</th>
                     <th>Type</th>
                     <th>Variants</th>
+                    <th>Status</th>
                     <th>URL</th>
                   </tr>
                 </thead>
@@ -245,11 +288,19 @@
             </div>
           </div>
 
-          <!-- Tab 4: Images Grid -->
+          <!-- Tab 4: Media Gallery (Images & Videos) -->
           <div id="images-tab" class="tab-content">
             <div class="tab-header">
-              <h2>Product Image Gallery</h2>
-              <p>Thumbnails, resolution, filenames, and alt tags. Download individual images or bundle them into a ZIP in the sidebar.</p>
+              <h2>Media Gallery (Images & Videos)</h2>
+              <p>Preview and download product gallery images, website banners, logos, and MP4/WebM videos.</p>
+              
+              <!-- Filter Pills -->
+              <div class="filter-pills-bar">
+                <button class="filter-pill active" data-filter="all">All Media (<span id="filter-all-count">0</span>)</button>
+                <button class="filter-pill" data-filter="product-images">Product Images (<span id="filter-prod-images-count">0</span>)</button>
+                <button class="filter-pill" data-filter="website-images">Website Banners & Images (<span id="filter-site-images-count">0</span>)</button>
+                <button class="filter-pill" data-filter="videos">Videos (<span id="filter-videos-count">0</span>)</button>
+              </div>
             </div>
             <div id="images-grid" class="images-grid">
               <!-- Dynamically populated -->
@@ -290,7 +341,7 @@
 
     <footer class="app-footer">
       <div class="footer-content">
-        <p>&copy; 2026 Spectrum Web Inspector. Built for professional website scanning.</p>
+        <p>&copy; 2026 Spectrum Web Inspector. Built for Shopify scraping, media extraction, and 1-click active CSV exports.</p>
       </div>
     </footer>
 

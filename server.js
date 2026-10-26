@@ -94,7 +94,7 @@ app.get("/api/scrape", async (req, res) => {
 
 // Endpoint 3: Stateless Export (Generates CSV or ZIP files dynamically)
 app.post("/api/export", async (req, res) => {
-  const { format, products, images, host = "export" } = req.body || {};
+  const { format, products, images, items, media, category = "media", host = "export" } = req.body || {};
 
   if (!format) {
     return res.status(400).json({ ok: false, error: "format is required" });
@@ -117,27 +117,31 @@ app.post("/api/export", async (req, res) => {
       res.setHeader("Content-Type", "text/csv; charset=utf-8");
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename="${safeHost}_${stamp}_products.csv"`,
+        `attachment; filename="${safeHost}_${stamp}_shopify_products.csv"`,
       );
       return res.send(csv);
     }
 
     if (format === "zip") {
-      if (!Array.isArray(images)) {
+      const mediaList = items || media || images;
+      if (!Array.isArray(mediaList) || mediaList.length === 0) {
         return res
           .status(400)
           .json({
             ok: false,
-            error: "images array is required for zip export",
+            error: "A valid media items or images array is required for zip export",
           });
       }
 
-      const zipBuffer = await generateImagesZip(images, (msg) => {});
+      const zipBuffer = await generateImagesZip(mediaList, (msg) => {
+        console.log(`[ZIP Progress] ${msg}`);
+      });
 
+      const catLabel = category.replace(/[^A-Za-z0-9_-]/g, "");
       res.setHeader("Content-Type", "application/zip");
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename="${safeHost}_${stamp}_images.zip"`,
+        `attachment; filename="${safeHost}_${stamp}_${catLabel}.zip"`,
       );
       return res.send(zipBuffer);
     }

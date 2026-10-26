@@ -25,13 +25,20 @@ const themeId = document.getElementById("theme-id");
 const themeIdWrapper = document.getElementById("theme-id-wrapper");
 const themeAuthor = document.getElementById("theme-author");
 const themeAuthorWrapper = document.getElementById("theme-author-wrapper");
+
+// Stats Elements
 const statProducts = document.getElementById("stat-products");
+const statProductImages = document.getElementById("stat-product-images");
+const statSiteImages = document.getElementById("stat-site-images");
+const statVideos = document.getElementById("stat-videos");
 const statCollections = document.getElementById("stat-collections");
 const statSource = document.getElementById("stat-source");
 
-// Download Buttons
+// Download Action Buttons
 const downloadCsvBtn = document.getElementById("downloadCsvBtn");
-const downloadZipBtn = document.getElementById("downloadZipBtn");
+const downloadProductZipBtn = document.getElementById("downloadProductZipBtn");
+const downloadWebsiteZipBtn = document.getElementById("downloadWebsiteZipBtn");
+const downloadAllZipBtn = document.getElementById("downloadAllZipBtn");
 
 // Tab Navigation
 const tabButtons = document.querySelectorAll(".tab-btn");
@@ -40,6 +47,13 @@ const productsTabNav = document.getElementById("products-tab-nav");
 const imagesTabNav = document.getElementById("images-tab-nav");
 const productsCountBadge = document.getElementById("products-count-badge");
 const imagesCountBadge = document.getElementById("images-count-badge");
+
+// Media Filter Pills & Counts
+const filterPills = document.querySelectorAll(".filter-pill");
+const filterAllCount = document.getElementById("filter-all-count");
+const filterProdImagesCount = document.getElementById("filter-prod-images-count");
+const filterSiteImagesCount = document.getElementById("filter-site-images-count");
+const filterVideosCount = document.getElementById("filter-videos-count");
 
 // Tech Grid & Meta
 const techGrid = document.getElementById("tech-grid");
@@ -64,6 +78,7 @@ let analysisState = null;
 let scrapeState = null;
 let eventSource = null;
 let logLines = [];
+let currentMediaFilter = "all";
 
 // ==========================================
 // TOAST NOTIFICATIONS
@@ -74,7 +89,6 @@ function showToast(message, type = "info") {
   toast.innerText = message;
   toastContainer.appendChild(toast);
 
-  // Auto remove
   setTimeout(() => {
     toast.style.animation = "slideIn 0.3s ease reverse forwards";
     setTimeout(() => toast.remove(), 300);
@@ -121,13 +135,25 @@ tabButtons.forEach(button => {
   button.addEventListener("click", () => {
     const targetTab = button.getAttribute("data-tab");
     
-    // Deactivate current tabs
     tabButtons.forEach(b => b.classList.remove("active"));
     tabContents.forEach(c => c.classList.remove("active"));
 
-    // Activate selected tab
     button.classList.add("active");
-    document.getElementById(targetTab).classList.add("active");
+    document.getElementById(targetTab)?.classList.add("active");
+  });
+});
+
+// ==========================================
+// MEDIA GALLERY FILTER PILLS
+// ==========================================
+filterPills.forEach(pill => {
+  pill.addEventListener("click", () => {
+    filterPills.forEach(p => p.classList.remove("active"));
+    pill.classList.add("active");
+    currentMediaFilter = pill.getAttribute("data-filter") || "all";
+    if (scrapeState) {
+      renderMediaGallery(scrapeState, currentMediaFilter);
+    }
   });
 });
 
@@ -144,8 +170,7 @@ analyzeBtn.addEventListener("click", async () => {
   // Reset UI State
   analyzeBtn.disabled = true;
   scrapeBtn.disabled = true;
-  downloadCsvBtn.disabled = true;
-  downloadZipBtn.disabled = true;
+  setDownloadButtonsEnabled(false);
   
   // Disable result-based tabs
   productsTabNav.disabled = true;
@@ -170,7 +195,7 @@ analyzeBtn.addEventListener("click", async () => {
   
   logLines = [];
   logToConsole(`Initializing fast site analysis for ${storeUrl}...`);
-  statusText.innerText = "Analyzing website CMS and tech stack...";
+  statusText.innerText = "Analyzing website CMS, tech stack, and theme...";
 
   try {
     const res = await fetch(`/api/analyze?storeUrl=${encodeURIComponent(storeUrl)}`);
@@ -189,8 +214,8 @@ analyzeBtn.addEventListener("click", async () => {
     scrapeBtn.disabled = false; // Enable products scraping
     
     showToast("Website analysis completed successfully!", "success");
-    logToConsole("Analysis done. You can now start the product scrape.");
-    statusText.innerText = "Site analysis complete. Ready to scrape products.";
+    logToConsole("Analysis done. You can now start the product and media scrape.");
+    statusText.innerText = "Site analysis complete. Ready to scrape products & all media.";
   } catch (error) {
     skeletonLoader.classList.add("hidden");
     statusText.innerText = "Analysis failed.";
@@ -206,9 +231,9 @@ analyzeBtn.addEventListener("click", async () => {
 // ==========================================
 function populateDashboard(data) {
   // CMS Details
-  cmsBadge.innerText = data.cms.name;
-  cmsConfidence.innerText = `${data.cms.percentage}% (${data.cms.confidence})`;
-  cmsConfidenceFill.style.width = `${data.cms.percentage}%`;
+  cmsBadge.innerText = data.cms?.name || "Unknown";
+  cmsConfidence.innerText = `${data.cms?.percentage || 0}% (${data.cms?.confidence || "Medium"})`;
+  cmsConfidenceFill.style.width = `${data.cms?.percentage || 50}%`;
 
   // Theme Details
   if (data.theme) {
@@ -236,16 +261,22 @@ function populateDashboard(data) {
   }
 
   // Scan counts
-  statProducts.innerText = data.products.totalProducts;
-  statCollections.innerText = data.products.totalCollections || "0";
-  statSource.innerText = data.products.source;
+  statProducts.innerText = data.products?.totalProducts || "0";
+  statCollections.innerText = data.products?.totalCollections || "0";
+  statSource.innerText = data.products?.source || "API Check";
+  
+  if (!scrapeState) {
+    statProductImages.innerText = "--";
+    statSiteImages.innerText = "--";
+    statVideos.innerText = "--";
+  }
 
   // SEO details
-  metaFavicon.src = data.metadata.favicon || "";
-  metaFaviconUrl.innerText = data.metadata.favicon ? data.metadata.favicon.split("/").pop() : "None";
-  metaTitle.innerText = data.metadata.title || "No Title tag detected";
-  metaDescription.innerText = data.metadata.description || "No description meta tag detected";
-  metaGenerator.innerText = data.metadata.generator || "No generator detected";
+  metaFavicon.src = data.metadata?.favicon || "";
+  metaFaviconUrl.innerText = data.metadata?.favicon ? data.metadata.favicon.split("/").pop() : "None";
+  metaTitle.innerText = data.metadata?.title || "No Title tag detected";
+  metaDescription.innerText = data.metadata?.description || "No description meta tag detected";
+  metaGenerator.innerText = data.metadata?.generator || "No generator detected";
 
   // Tech grid populate
   techGrid.innerHTML = "";
@@ -259,7 +290,7 @@ function populateDashboard(data) {
           <span class="tech-type">${tech.type}</span>
         </div>
         <div class="tech-card-footer">
-          <span class="tech-confidence-badge ${tech.confidence.toLowerCase()}">${tech.confidence}</span>
+          <span class="tech-confidence-badge ${(tech.confidence || "high").toLowerCase()}">${tech.confidence}</span>
           <span class="tech-pct">${tech.percentage}%</span>
         </div>
       `;
@@ -294,13 +325,22 @@ copyJsonBtn.addEventListener("click", () => {
 });
 
 // ==========================================
-// SCRAPE PRODUCTS ACTION (SSE)
+// ENABLE / DISABLE DOWNLOAD BUTTONS
+// ==========================================
+function setDownloadButtonsEnabled(enabled) {
+  downloadCsvBtn.disabled = !enabled;
+  downloadProductZipBtn.disabled = !enabled;
+  downloadWebsiteZipBtn.disabled = !enabled;
+  downloadAllZipBtn.disabled = !enabled;
+}
+
+// ==========================================
+// SCRAPE PRODUCTS & MEDIA ACTION (SSE)
 // ==========================================
 scrapeBtn.addEventListener("click", () => {
   const storeUrl = storeUrlInput.value.trim();
   if (!storeUrl) return;
 
-  // Clear previous SSE connection if open
   if (eventSource) {
     eventSource.close();
   }
@@ -311,8 +351,8 @@ scrapeBtn.addEventListener("click", () => {
   progressBarFill.style.width = "0%";
   progressPercent.innerText = "0%";
   progressContainer.classList.remove("hidden");
-  statusText.innerText = "Starting products scraping...";
-  logToConsole("Initializing real-time Server-Sent Events stream for scraping...");
+  statusText.innerText = "Starting products and media extraction...";
+  logToConsole("Initializing real-time stream: scraping products, variants, product photos, website banners, and videos...");
 
   const threads = 6;
   const sseUrl = `/api/scrape?storeUrl=${encodeURIComponent(storeUrl)}&threads=${threads}`;
@@ -336,26 +376,32 @@ scrapeBtn.addEventListener("click", () => {
       } else if (payload.type === "complete") {
         scrapeState = payload.result;
         
-        logToConsole("Scraping completed! Finalizing UI lists...");
-        showToast("Products scrape completed!", "success");
-        statusText.innerText = "Products scrape complete. Export ready.";
+        logToConsole("Scraping completed! Finalizing UI lists & media assets...");
+        showToast("Products & media extraction completed successfully!", "success");
+        statusText.innerText = "Scrape complete. Official Shopify CSV and media archives ready.";
         
         progressBarFill.style.width = "100%";
         progressPercent.innerText = "100%";
-        
+
+        // Update Stats in Sidebar
+        statProducts.innerText = scrapeState.records?.length || 0;
+        statProductImages.innerText = scrapeState.images?.length || 0;
+        statSiteImages.innerText = scrapeState.websiteMedia?.images?.length || 0;
+        statVideos.innerText = scrapeState.videos?.length || 0;
+
         // Enable Result Tabs & populate
         productsCountBadge.innerText = scrapeState.records?.length || 0;
-        imagesCountBadge.innerText = scrapeState.images?.length || 0;
+        imagesCountBadge.innerText = scrapeState.allMedia?.length || scrapeState.images?.length || 0;
 
         populateProductsTable(scrapeState.records);
-        populateImagesGrid(scrapeState.images);
+        updateMediaFilterCounts(scrapeState);
+        renderMediaGallery(scrapeState, currentMediaFilter);
 
         productsTabNav.disabled = false;
         imagesTabNav.disabled = false;
 
-        // Enable Download buttons
-        downloadCsvBtn.disabled = false;
-        downloadZipBtn.disabled = false;
+        // Enable All 4 Download buttons
+        setDownloadButtonsEnabled(true);
 
         // Save latest to localStorage for quick restore
         try {
@@ -387,9 +433,8 @@ scrapeBtn.addEventListener("click", () => {
   };
 
   eventSource.onerror = (event) => {
-    // Only handle if eventSource is still active (connection died before complete)
     if (eventSource) {
-      statusText.innerText = "Scrape failed.";
+      statusText.innerText = "Scrape connection interrupted.";
       logToConsole("Connection to server lost.");
       showToast("Connection to server lost.", "error");
       
@@ -407,47 +452,116 @@ scrapeBtn.addEventListener("click", () => {
 function populateProductsTable(products) {
   productsTbody.innerHTML = "";
   if (!products || products.length === 0) {
-    productsTbody.innerHTML = `<tr><td colspan="6" class="empty-state">No products extracted.</td></tr>`;
+    productsTbody.innerHTML = `<tr><td colspan="7" class="empty-state">No products extracted.</td></tr>`;
     return;
   }
 
   products.forEach(p => {
     const row = document.createElement("tr");
     row.innerHTML = `
-      <td><strong>${p.title}</strong></td>
+      <td><strong>${escapeHtml(p.title)}</strong></td>
       <td class="mono-text">$${p.price || "N/A"}</td>
-      <td>${p.vendor || "N/A"}</td>
-      <td><span class="logo-tag">${p.product_type || "N/A"}</span></td>
-      <td>${p.variants?.length || 0}</td>
+      <td>${escapeHtml(p.vendor || "N/A")}</td>
+      <td><span class="logo-tag">${escapeHtml(p.product_type || "Product")}</span></td>
+      <td>${p.variants?.length || 1}</td>
+      <td><span class="status-active-pill">ACTIVE</span></td>
       <td><a href="${p.product_url}" target="_blank" class="table-link">View Page &rarr;</a></td>
     `;
     productsTbody.appendChild(row);
   });
 }
 
+function escapeHtml(str) {
+  return String(str || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 // ==========================================
-// POPULATE IMAGES GRID
+// MEDIA GALLERY COUNTS & RENDERING
 // ==========================================
-function populateImagesGrid(images) {
+function updateMediaFilterCounts(state) {
+  const allMedia = state.allMedia || state.images || [];
+  const prodImages = allMedia.filter(m => m.category === "product" && m.type !== "video");
+  const siteImages = allMedia.filter(m => m.category === "website" && m.type !== "video");
+  const videos = allMedia.filter(m => m.type === "video");
+
+  filterAllCount.innerText = allMedia.length;
+  filterProdImagesCount.innerText = prodImages.length;
+  filterSiteImagesCount.innerText = siteImages.length;
+  filterVideosCount.innerText = videos.length;
+  imagesCountBadge.innerText = allMedia.length;
+}
+
+function renderMediaGallery(state, filter = "all") {
   imagesGrid.innerHTML = "";
-  if (!images || images.length === 0) {
-    imagesGrid.innerHTML = `<div class="empty-state">No product images extracted.</div>`;
+  let items = state.allMedia || state.images || [];
+
+  if (filter === "product-images") {
+    items = items.filter(m => m.category === "product" && m.type !== "video");
+  } else if (filter === "website-images") {
+    items = items.filter(m => m.category === "website" && m.type !== "video");
+  } else if (filter === "videos") {
+    items = items.filter(m => m.type === "video");
+  }
+
+  if (!items || items.length === 0) {
+    imagesGrid.innerHTML = `<div class="empty-state" style="grid-column: 1/-1;">No media items found for this filter.</div>`;
     return;
   }
 
-  images.forEach(img => {
+  items.forEach(item => {
+    const isVideo = item.type === "video" || /\.(mp4|webm|mov|m4v)(?:\?|$)/i.test(item.src);
+    const categoryLabel = item.category === "website" ? "Website Banner" : "Product Media";
+    const categoryClass = item.category === "website" ? "website" : "product";
+
     const card = document.createElement("div");
     card.className = "image-card";
-    card.innerHTML = `
-      <div class="image-thumb-wrapper">
-        <img src="${img.thumbnail}" alt="${img.alt}" loading="lazy" />
-      </div>
-      <div class="image-card-info">
-        <span class="img-filename">${img.filename}</span>
-        <span class="img-res">${img.resolution}</span>
-        <span class="img-alt" title="${img.alt}">${img.alt}</span>
-      </div>
-    `;
+
+    if (isVideo) {
+      card.innerHTML = `
+        <div class="media-card-top">
+          <span class="media-tag-badge ${categoryClass}">${categoryLabel}</span>
+          <span class="media-type-badge">VIDEO (${item.format || "MP4"})</span>
+          <div class="media-video-wrapper">
+            <video controls preload="metadata" poster="${item.thumbnail || ""}" src="${item.src}">
+              Your browser does not support HTML5 video.
+            </video>
+          </div>
+        </div>
+        <div class="image-card-info">
+          <span class="img-filename" title="${escapeHtml(item.filename)}">${escapeHtml(item.filename)}</span>
+          <span class="img-res">${item.resolution || "HD Video"}</span>
+          <span class="img-alt" title="${escapeHtml(item.alt || "")}">${escapeHtml(item.alt || item.filename)}</span>
+          <a href="${item.src}" target="_blank" download="${escapeHtml(item.filename)}" class="card-download-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span>Download Video</span>
+          </a>
+        </div>
+      `;
+    } else {
+      card.innerHTML = `
+        <div class="media-card-top">
+          <span class="media-tag-badge ${categoryClass}">${categoryLabel}</span>
+          <div class="image-thumb-wrapper">
+            <img src="${item.thumbnail || item.src}" alt="${escapeHtml(item.alt || "")}" loading="lazy" />
+          </div>
+        </div>
+        <div class="image-card-info">
+          <span class="img-filename" title="${escapeHtml(item.filename)}">${escapeHtml(item.filename)}</span>
+          <span class="img-res">${item.resolution || "Standard"}</span>
+          <span class="img-alt" title="${escapeHtml(item.alt || "")}">${escapeHtml(item.alt || item.filename)}</span>
+          <a href="${item.src}" target="_blank" download="${escapeHtml(item.filename)}" class="card-download-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span>Download Image</span>
+          </a>
+        </div>
+      `;
+    }
+
     imagesGrid.appendChild(card);
   });
 }
@@ -455,8 +569,6 @@ function populateImagesGrid(images) {
 // ==========================================
 // EXPORTS DOWNLOAD FLOW
 // ==========================================
-
-// Helper to trigger browser download of a blob
 function triggerDownload(blob, filename) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -471,15 +583,24 @@ function triggerDownload(blob, filename) {
   }, 1000);
 }
 
-// 1. Download Product CSV (stateless export POST)
+// Helper to get safe hostname
+function getStoreHost() {
+  try {
+    return new URL(storeUrlInput.value.trim()).hostname;
+  } catch {
+    return "shopify_store";
+  }
+}
+
+// 1. Download Official Shopify CSV (Status: Active)
 downloadCsvBtn.addEventListener("click", async () => {
   if (!scrapeState || !scrapeState.records) return;
   
   downloadCsvBtn.disabled = true;
-  showToast("Generating CSV download...", "info");
+  showToast("Generating official Shopify import CSV with Active status...", "info");
 
   try {
-    const host = new URL(storeUrlInput.value.trim()).hostname;
+    const host = getStoreHost();
     const res = await fetch("/api/export", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -491,13 +612,14 @@ downloadCsvBtn.addEventListener("click", async () => {
     });
 
     if (!res.ok) {
-      throw new Error("Failed to compile CSV on server.");
+      throw new Error("Failed to compile Shopify CSV on server.");
     }
 
     const blob = await res.blob();
     const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-    triggerDownload(blob, `${host}_${stamp}_products.csv`);
-    showToast("Product CSV downloaded successfully!", "success");
+    triggerDownload(blob, `${host}_${stamp}_shopify_products_active.csv`);
+    showToast("Shopify Product CSV downloaded! Ready for 1-click import into Shopify Admin.", "success");
+    logToConsole("Shopify Product CSV downloaded successfully with Status: active.");
   } catch (err) {
     showToast(`Export failed: ${err.message}`, "error");
   } finally {
@@ -505,41 +627,132 @@ downloadCsvBtn.addEventListener("click", async () => {
   }
 });
 
-// 2. Download Images ZIP (stateless export POST)
-downloadZipBtn.addEventListener("click", async () => {
-  if (!scrapeState || !scrapeState.images) return;
+// 2. Download Product Images ZIP
+downloadProductZipBtn.addEventListener("click", async () => {
+  const productImages = scrapeState?.images || scrapeState?.productMedia?.images || [];
+  if (!productImages.length) {
+    showToast("No product images available to download.", "error");
+    return;
+  }
 
-  downloadZipBtn.disabled = true;
-  showToast("Bundling images into ZIP. This may take a minute...", "info");
-  logToConsole("Requested ZIP export. Server is downloading image assets and compressing...");
+  downloadProductZipBtn.disabled = true;
+  showToast(`Bundling ${productImages.length} product images into ZIP...`, "info");
+  logToConsole("Server is bundling product gallery photos into ZIP archive...");
 
   try {
-    const host = new URL(storeUrlInput.value.trim()).hostname;
+    const host = getStoreHost();
     const res = await fetch("/api/export", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         format: "zip",
-        images: scrapeState.images,
+        category: "product_images",
+        items: productImages,
         host
       })
     });
 
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
-      throw new Error(errData.error || "Failed to generate ZIP on server.");
+      throw new Error(errData.error || "Failed to generate Product Images ZIP.");
     }
 
     const blob = await res.blob();
     const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-    triggerDownload(blob, `${host}_${stamp}_images.zip`);
-    showToast("Images ZIP downloaded successfully!", "success");
-    logToConsole("Images ZIP downloaded successfully.");
+    triggerDownload(blob, `${host}_${stamp}_product_images.zip`);
+    showToast("Product Images ZIP downloaded successfully!", "success");
+    logToConsole("Product Images ZIP archive downloaded.");
   } catch (err) {
-    logToConsole(`ZIP Error: ${err.message}`);
     showToast(`ZIP generation failed: ${err.message}`, "error");
   } finally {
-    downloadZipBtn.disabled = false;
+    downloadProductZipBtn.disabled = false;
+  }
+});
+
+// 3. Download Website Media ZIP (Banners, Logos, Site Images & Videos)
+downloadWebsiteZipBtn.addEventListener("click", async () => {
+  const siteImages = scrapeState?.websiteMedia?.images || [];
+  const siteVideos = scrapeState?.websiteMedia?.videos || [];
+  const websiteItems = [...siteImages, ...siteVideos];
+
+  if (!websiteItems.length) {
+    showToast("No website banners or videos found to download.", "error");
+    return;
+  }
+
+  downloadWebsiteZipBtn.disabled = true;
+  showToast(`Bundling ${websiteItems.length} website media assets (Images & Videos) into ZIP...`, "info");
+  logToConsole("Server is downloading website banners, graphics, and videos into ZIP archive...");
+
+  try {
+    const host = getStoreHost();
+    const res = await fetch("/api/export", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        format: "zip",
+        category: "website_media",
+        items: websiteItems,
+        host
+      })
+    });
+
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || "Failed to generate Website Media ZIP.");
+    }
+
+    const blob = await res.blob();
+    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+    triggerDownload(blob, `${host}_${stamp}_website_media.zip`);
+    showToast("Website Media ZIP downloaded successfully!", "success");
+    logToConsole("Website Media ZIP archive downloaded.");
+  } catch (err) {
+    showToast(`ZIP generation failed: ${err.message}`, "error");
+  } finally {
+    downloadWebsiteZipBtn.disabled = false;
+  }
+});
+
+// 4. Download All Media Bundle ZIP (Everything in organized folders)
+downloadAllZipBtn.addEventListener("click", async () => {
+  const allItems = scrapeState?.allMedia || scrapeState?.images || [];
+  if (!allItems.length) {
+    showToast("No media items available to download.", "error");
+    return;
+  }
+
+  downloadAllZipBtn.disabled = true;
+  showToast(`Bundling complete archive of ${allItems.length} media files into organized ZIP...`, "info");
+  logToConsole("Server is packaging all product photos, website images, and videos into folders...");
+
+  try {
+    const host = getStoreHost();
+    const res = await fetch("/api/export", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        format: "zip",
+        category: "all_media_bundle",
+        items: allItems,
+        host
+      })
+    });
+
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || "Failed to generate All Media ZIP.");
+    }
+
+    const blob = await res.blob();
+    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+    triggerDownload(blob, `${host}_${stamp}_all_media.zip`);
+    showToast("All Media ZIP downloaded successfully!", "success");
+    logToConsole("All Media ZIP archive downloaded.");
+  } catch (err) {
+    showToast(`ZIP generation failed: ${err.message}`, "error");
+  } finally {
+    downloadAllZipBtn.disabled = false;
   }
 });
 
@@ -563,19 +776,23 @@ function restoreLatest() {
       if (data.scrape) {
         scrapeState = data.scrape;
         
+        statProducts.innerText = scrapeState.records?.length || 0;
+        statProductImages.innerText = scrapeState.images?.length || 0;
+        statSiteImages.innerText = scrapeState.websiteMedia?.images?.length || 0;
+        statVideos.innerText = scrapeState.videos?.length || 0;
+
         productsCountBadge.innerText = scrapeState.records?.length || 0;
-        imagesCountBadge.innerText = scrapeState.images?.length || 0;
+        imagesCountBadge.innerText = scrapeState.allMedia?.length || scrapeState.images?.length || 0;
         
         populateProductsTable(scrapeState.records);
-        populateImagesGrid(scrapeState.images);
+        updateMediaFilterCounts(scrapeState);
+        renderMediaGallery(scrapeState, currentMediaFilter);
         
         productsTabNav.disabled = false;
         imagesTabNav.disabled = false;
         
-        downloadCsvBtn.disabled = false;
-        downloadZipBtn.disabled = false;
-        
-        logToConsole("Restored previous scrape results from browser memory.");
+        setDownloadButtonsEnabled(true);
+        logToConsole("Restored previous scrape results & media from browser memory.");
       }
     }
   } catch {
@@ -583,29 +800,22 @@ function restoreLatest() {
   }
 }
 
+// Clear button
 clearBtn.addEventListener("click", () => {
-  // Clear state
   analysisState = null;
   scrapeState = null;
-  
-  // Clear input
   storeUrlInput.value = "";
   
-  // Clear local storage
   localStorage.removeItem("spectrum_latest_scrape");
   
-  // Disable buttons
   scrapeBtn.disabled = true;
-  downloadCsvBtn.disabled = true;
-  downloadZipBtn.disabled = true;
+  setDownloadButtonsEnabled(false);
   
-  // Disable tabs
   productsTabNav.disabled = true;
   imagesTabNav.disabled = true;
   productsTabNav.classList.remove("active");
   imagesTabNav.classList.remove("active");
 
-  // Reset tab buttons and contents to default active tab
   tabButtons.forEach(b => {
     if (b.getAttribute("data-tab") === "tech-tab") b.classList.add("active");
     else b.classList.remove("active");
@@ -615,13 +825,11 @@ clearBtn.addEventListener("click", () => {
     else c.classList.remove("active");
   });
 
-  // Hide UI blocks
   dashboard.classList.add("hidden");
   skeletonLoader.classList.add("hidden");
   statusSection.classList.add("hidden");
   progressContainer.classList.add("hidden");
   
-  // Reset badges and grids
   productsCountBadge.innerText = "0";
   imagesCountBadge.innerText = "0";
   productsTbody.innerHTML = "";

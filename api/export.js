@@ -7,7 +7,7 @@ export default async function handler(req, res) {
     return;
   }
 
-  const { format, products, images, host = "export" } = req.body || {};
+  const { format, products, images, items, media, category = "media", host = "export" } = req.body || {};
 
   if (!format) {
     res.status(400).json({ ok: false, error: "format is required" });
@@ -25,23 +25,25 @@ export default async function handler(req, res) {
       }
       const csv = productsToCsv(products);
       res.setHeader("Content-Type", "text/csv; charset=utf-8");
-      res.setHeader("Content-Disposition", `attachment; filename="${safeHost}_${stamp}_products.csv"`);
+      res.setHeader("Content-Disposition", `attachment; filename="${safeHost}_${stamp}_shopify_products.csv"`);
       res.status(200).send(csv);
       return;
     } 
     
     if (format === "zip") {
-      if (!Array.isArray(images)) {
-        res.status(400).json({ ok: false, error: "images array is required for zip export" });
+      const mediaList = items || media || images;
+      if (!Array.isArray(mediaList) || mediaList.length === 0) {
+        res.status(400).json({ ok: false, error: "A valid media items or images array is required for zip export" });
         return;
       }
       
-      const zipBuffer = await generateImagesZip(images, (msg) => {
+      const zipBuffer = await generateImagesZip(mediaList, (msg) => {
         console.log(`[Vercel ZIP progress] ${msg}`);
       });
 
+      const catLabel = category.replace(/[^A-Za-z0-9_-]/g, "");
       res.setHeader("Content-Type", "application/zip");
-      res.setHeader("Content-Disposition", `attachment; filename="${safeHost}_${stamp}_images.zip"`);
+      res.setHeader("Content-Disposition", `attachment; filename="${safeHost}_${stamp}_${catLabel}.zip"`);
       res.status(200).send(zipBuffer);
       return;
     }
